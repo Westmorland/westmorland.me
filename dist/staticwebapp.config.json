@@ -1,0 +1,43 @@
+{
+  "routes": [
+    {
+      "route": "/.auth/login/aad",
+      "statusCode": 404
+    },
+    {
+      "route": "/.auth/login/github",
+      "statusCode": 404
+    },
+    {
+      "route": "/privacy",
+      "redirect": "/privacy/",
+      "statusCode": 302
+    },
+    {
+      "route": "/privacy/",
+      "rewrite": "/privacy/index.html"
+    },
+    {
+      "route": "/terms",
+      "redirect": "/terms/",
+      "statusCode": 302
+    },
+    {
+      "route": "/terms/",
+      "rewrite": "/terms/index.html"
+    }
+  ],
+  "responseOverrides": {
+    "404": {
+      "rewrite": "/index.html",
+      "statusCode": 404
+    }
+  },
+  "globalHeaders": {
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "no-referrer",
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+    "Content-Security-Policy": "default-src 'none'; script-src 'sha256-McI7OImDo/ejsYM81juv8FeDhL+zjQtc+yQfx3+wrZs='; style-src 'sha256-LDup65A9wJqxaNcc74LXaiWKTfh4BB2SEoVzcSae4Mk='; font-src data:; img-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+  }
+}
