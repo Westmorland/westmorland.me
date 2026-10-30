@@ -1,4 +1,5 @@
 {
+  "trailingSlash": "always",
   "routes": [
     {
       "route": "/.auth/login/aad",
@@ -7,24 +8,6 @@
     {
       "route": "/.auth/login/github",
       "statusCode": 404
-    },
-    {
-      "route": "/privacy",
-      "redirect": "/privacy/",
-      "statusCode": 302
-    },
-    {
-      "route": "/privacy/",
-      "rewrite": "/privacy/index.html"
-    },
-    {
-      "route": "/terms",
-      "redirect": "/terms/",
-      "statusCode": 302
-    },
-    {
-      "route": "/terms/",
-      "rewrite": "/terms/index.html"
     }
   ],
   "responseOverrides": {

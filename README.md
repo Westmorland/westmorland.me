@@ -24,7 +24,7 @@ The integration and browser checks start temporary loopback servers and stop the
 
 ## Routes and security
 
-`/`, `/privacy/` and `/terms/` have pre-rendered HTML. Policy paths without a trailing slash redirect to their directory URLs. Legacy `/#/home`, `/#/privacy` and `/#/terms` links work; unknown hash routes display Home. Unknown HTTP paths display Home with a 404 status, not a successful SPA fallback.
+`/`, `/privacy/` and `/terms/` have pre-rendered HTML. Azure's global [`trailingSlash: "always"`](https://learn.microsoft.com/en-us/azure/static-web-apps/configuration#trailing-slash) redirects `/privacy` and `/privacy/index.html` to `/privacy/` with status 301, and likewise for Terms. The directory URLs serve their static `index.html` files with status 200. Do not add separate slash/non-slash route rules: Azure normalises those paths and rejects the duplicate rules. Local configuration regressions guard this arrangement, not Azure runtime enforcement. Legacy `/#/home`, `/#/privacy` and `/#/terms` links work; unknown hash routes display Home. Unknown HTTP paths display Home with a 404 status, not a successful SPA fallback.
 
 CSS, JavaScript and four WOFF2 font faces are bundled into each HTML file. Third-party licences are in `dist/licenses/`. The build emits `dist/staticwebapp.config.json` from the root configuration and adds CSP hashes of the exact escaped inline script and style bytes. Animation delays live in CSS rather than inline attributes. No `unsafe-inline` or `unsafe-eval` permission is needed. The CSP denies network connections, forms, embedding and base-URL overrides; font and image data URLs remain permitted.
 

@@ -12,15 +12,27 @@ test('public pages have no draft marker or noindex', async () => {
     assert.doesNotMatch(html, /Design draft, not for publication|name="robots" content="noindex"/);
   }
 });
-test('SWA serves static policies, redirects bare paths and preserves 404 Home', async () => {
-  const config = await json('dist/staticwebapp.config.json');
-  for (const page of ['privacy', 'terms']) {
-    assert.deepEqual(config.routes.find((r) => r.route === `/${page}`), { route: `/${page}`, redirect: `/${page}/`, statusCode: 302 });
-    assert.deepEqual(config.routes.find((r) => r.route === `/${page}/`), { route: `/${page}/`, rewrite: `/${page}/index.html` });
-  }
-  assert.deepEqual(config.responseOverrides, { '404': { rewrite: '/index.html', statusCode: 404 } });
-  assert.equal(config.navigationFallback, undefined);
-});
+for (const file of ['staticwebapp.config.json', 'dist/staticwebapp.config.json']) {
+  test(`SWA has no slash-normalised duplicate routes in ${file}`, async () => {
+    const config = await json(file);
+    // Azure treats /privacy and /privacy/ as the same route. This site uses
+    // unconditional rules; this guard is not a general Azure route validator.
+    const routes = config.routes.map(({ route }) => route.replace(/\/+$/, '') || '/');
+    assert.equal(new Set(routes).size, routes.length, 'slash variants must not define separate rules');
+  });
+  test(`SWA delegates policy redirects to trailingSlash and preserves 404 Home in ${file}`, async () => {
+    const config = await json(file);
+    // Microsoft documents always: /page and /page/index.html -> 301 /page/,
+    // then /page/ -> 200 from /page/index.html. No per-page rules are needed.
+    assert.equal(config.trailingSlash, 'always');
+    assert.deepEqual(config.routes.map(({ route }) => route), ['/.auth/login/aad', '/.auth/login/github']);
+    for (const page of ['privacy', 'terms']) {
+      assert.match(await readFile(`dist/${page}/index.html`, 'utf8'), /^<!doctype html>/);
+    }
+    assert.deepEqual(config.responseOverrides, { '404': { rewrite: '/index.html', statusCode: 404 } });
+    assert.equal(config.navigationFallback, undefined);
+  });
+}
 for (const [index, provider] of ['aad', 'github'].entries()) {
   test(`SWA blocks built-in ${provider} sign-in in source and emitted configuration`, async () => {
     for (const file of ['staticwebapp.config.json', 'dist/staticwebapp.config.json']) {
