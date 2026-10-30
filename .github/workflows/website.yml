@@ -1,20 +1,23 @@
 name: Website
 on:
+  pull_request:
+    branches: [main]
   push:
     branches: [main]
   workflow_dispatch: {}
 permissions:
   contents: read
-concurrency:
-  group: website-production
-  cancel-in-progress: false
 jobs:
-  website:
-    if: github.repository == 'Westmorland/westmorland.me' && github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+  validation:
+    name: Website validation
     runs-on: ubuntu-24.04
+    outputs:
+      sha: ${{ steps.checked.outputs.sha }}
+      dist_tree: ${{ steps.checked.outputs.dist_tree }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
+          ref: ${{ github.sha }}
           persist-credentials: false
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
@@ -36,9 +39,34 @@ jobs:
           npm run test:integration
           npm run test:e2e
           npm run check:payload
-      - name: Require production event and deployment secret
+      - name: Record the checked revision and committed payload
+        id: checked
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          payload_status=$(git status --porcelain --untracked-files=all --ignored -- dist)
+          test -z "$payload_status"
+          echo "sha=$GITHUB_SHA" >> "$GITHUB_OUTPUT"
+          echo "dist_tree=$(git rev-parse HEAD:dist)" >> "$GITHUB_OUTPUT"
+  production:
+    name: Website production
+    needs: [validation]
+    if: needs.validation.result == 'success' && github.repository == 'Westmorland/westmorland.me' && github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    environment: production
+    runs-on: ubuntu-24.04
+    concurrency:
+      group: website-production
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ needs.validation.outputs.sha }}
+          persist-credentials: false
+      - name: Require checked current main and deployment secret
         env:
-          AZURE_STATIC_WEB_APPS_API_TOKEN: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+          VALIDATION_RESULT: ${{ needs.validation.result }}
+          CHECKED_SHA: ${{ needs.validation.outputs.sha }}
+          CHECKED_DIST_TREE: ${{ needs.validation.outputs.dist_tree }}
+          DEPLOYMENT_TOKEN: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
         run: bash scripts/deploy-guard.sh
       - name: Upload tested website only
         uses: Azure/static-web-apps-deploy@4d27395796ac319302594769cfe812bd207490b1 # v1 branch
