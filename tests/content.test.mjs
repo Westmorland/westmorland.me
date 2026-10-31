@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { home, cv } from '../src/content.js';
+import { home, cv } from '../src/content.ts';
 
 const hrefs = ['https://uk.linkedin.com/in/danwestmorland', 'https://github.com/Westmorland', 'https://medium.com/@westmorland'];
 const main = async (page) => (await readFile(`dist/${page === 'home' ? '' : page + '/'}index.html`, 'utf8')).match(/<main\b[^>]*>([\s\S]*?)<\/main>/)[1];

@@ -4,12 +4,14 @@
   "private": true,
   "type": "module",
   "engines": {
-    "node": ">=22"
+    "node": "^22.13.0 || >=24"
   },
   "scripts": {
-    "build": "node build.mjs",
-    "test": "node --test tests/unit.test.mjs tests/packaging.test.mjs tests/release.test.mjs",
-    "test:integration": "node --test tests/integration.test.mjs",
+    "build": "tsx build.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src build.ts scripts --max-warnings=0",
+    "test": "node --import tsx --test tests/unit.test.mjs tests/packaging.test.mjs tests/release.test.mjs tests/typescript.test.mjs",
+    "test:integration": "node --import tsx --test tests/integration.test.mjs",
     "test:e2e": "node tests/e2e.mjs",
     "check:payload": "node tests/payload.mjs"
   },
@@ -20,7 +22,14 @@
     "react-dom": "18.3.1"
   },
   "devDependencies": {
+    "@types/node": "22.20.5",
+    "@types/react": "18.3.31",
+    "@types/react-dom": "18.3.7",
     "esbuild": "0.25.0",
+    "eslint": "10.14.0",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.72.1",
     "yaml": "2.8.3"
   }
 }

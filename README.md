@@ -2,20 +2,26 @@
 
 A four-page personal website: Home, CV, Privacy and Terms. Header navigation links Home and CV; legal pages remain in the footer, alongside the approved LinkedIn, GitHub and Medium profiles. React enhances pre-rendered static HTML; there is no backend, sign-in, analytics or external runtime resource request.
 
-The CV experience section includes employer-level Waterstons responsibilities and title progression, both Oak roles, Creating Careers / vision2learn and Tata Steel training facilitation. Earlier entries omit dates; the current role and employer dates remain displayed. Career descriptions are static content in `src/content.js`.
+The CV experience section includes employer-level Waterstons responsibilities and title progression, both Oak roles, Creating Careers / vision2learn and Tata Steel training facilitation. Earlier entries omit dates; the current role and employer dates remain displayed. Career descriptions are static content in `src/content.ts`.
 
 ## Build and checks
 
-Use Node.js 22 or newer, npm, BusyBox with its `httpd` applet, and Chromium or Chrome. Dependencies are pinned in `package-lock.json`. Tests use Node's test runner and Chrome DevTools Protocol.
+Use Node.js 22.13+ within the 22 LTS line, or Node.js 24+, npm, BusyBox with its `httpd` applet, and Chromium or Chrome. Dependencies are pinned in `package-lock.json`. Tests use Node's test runner and Chrome DevTools Protocol.
 
 ```sh
 npm ci --ignore-scripts --no-audit --no-fund
+npm run typecheck
+npm run lint
 npm run build
 npm test
 npm run test:integration
 CHROME=/path/to/chrome SECURITY_HEADERS=1 npm run test:e2e
 npm run check:payload
 ```
+
+Application and build code use strict TypeScript, including checked indexed access and exact optional properties. `tsc --noEmit` checks both; esbuild and TSX transpilation alone do not type-check. Type-aware ESLint rejects unsafe values/assertions, suppression comments and mishandled promises. It covers application and build TypeScript, not the retained JavaScript test harness. No lint warnings are allowed.
+
+`Site.tsx` owns navigation/focus; Home, CV, Policy and ProfileLinks are cohesive presentation components. Route IDs derive from the route table. Shared content models cover policy sections, profiles, Focus items and AI step pairs; other content uses inference. Build-time rendering imports the typed renderer directly through TSX rather than an unchecked dynamic require. esbuild still bundles the browser payload, with unchanged static rendering and licence/CSP handling.
 
 The integration and browser checks start temporary loopback servers and stop them afterwards. `BUSYBOX` overrides the server executable. E2E creates a disposable headless browser profile with `--no-sandbox`; use it only for these local test pages, never untrusted browsing. Screenshots go to ignored `test-results/screenshots/` (`SCREENSHOT_DIR` overrides it). `PAYLOAD_DENY_FILE` optionally names an external JSON array of additional prohibited text; do not commit private scan inputs.
 
