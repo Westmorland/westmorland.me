@@ -238,7 +238,31 @@ await fresh('/');
 await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] });
 check('reduced motion leaves heading visible without animation', await ev(`Array.from(document.querySelectorAll('.cc-giant span')).every(e => getComputedStyle(e).animationName === 'none' && getComputedStyle(e).opacity === '1')`));
 await send('Emulation.setEmulatedMedia', { features: [] });
-check('local display and label fonts loaded', await ev(`document.fonts.check('800 32px "Bricolage Grotesque"') && document.fonts.check('400 13px "JetBrains Mono"')`));
+// Fresh navigation/media changes can leave font decoding in flight. Explicitly
+// load both required faces; fonts.ready alone also resolves after load failures.
+const fonts = await ev(`(async () => {
+  const required = ['800 32px "Bricolage Grotesque"', '400 13px "JetBrains Mono"'];
+  const started = performance.now();
+  let timer, loaded = [], error = null;
+  try {
+    // Keep this deadline below the harness's 10-second CDP command timeout.
+    await Promise.race([
+      Promise.all(required.map(font => document.fonts.load(font))).then(async faces => {
+        loaded = faces;
+        await document.fonts.ready;
+      }),
+      new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('Font readiness deadline exceeded (5000ms)')), 5000); }),
+    ]);
+  } catch (failure) { error = String(failure); }
+  finally { clearTimeout(timer); }
+  const checks = required.map(font => document.fonts.check(font));
+  return {
+    ok: !error && loaded.length === required.length && loaded.every(faces => faces.length > 0 && faces.every(face => face.status === 'loaded')) && checks.every(Boolean),
+    error, elapsedMs: Math.round(performance.now() - started), status: document.fonts.status,
+    checks, faces: Array.from(document.fonts, face => ({family: face.family, weight: face.weight, status: face.status})),
+  };
+})()`);
+check('local display and label fonts loaded', fonts.ok, JSON.stringify(fonts));
 
 // Overflow at narrow widths
 for (const w of [320, 375, 390, 768, 1440]) {
