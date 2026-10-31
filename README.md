@@ -1,6 +1,8 @@
 # westmorland.me
 
-A three-page personal website: Home, Privacy and Terms. React enhances pre-rendered static HTML; there is no backend, sign-in, analytics or external runtime resource request.
+A four-page personal website: Home, CV, Privacy and Terms. Header navigation links Home and CV; legal pages remain in the footer, alongside the approved LinkedIn, GitHub and Medium profiles. React enhances pre-rendered static HTML; there is no backend, sign-in, analytics or external runtime resource request.
+
+The CV experience section includes employer-level Waterstons responsibilities and title progression, both Oak roles, Creating Careers / vision2learn and Tata Steel training facilitation. Earlier entries omit dates; the current role and employer dates remain displayed. Career descriptions are static content in `src/content.js`.
 
 ## Build and checks
 
@@ -18,13 +20,13 @@ npm run check:payload
 The integration and browser checks start temporary loopback servers and stop them afterwards. `BUSYBOX` overrides the server executable. E2E creates a disposable headless browser profile with `--no-sandbox`; use it only for these local test pages, never untrusted browsing. Screenshots go to ignored `test-results/screenshots/` (`SCREENSHOT_DIR` overrides it). `PAYLOAD_DENY_FILE` optionally names an external JSON array of additional prohibited text; do not commit private scan inputs.
 
 - Unit/configuration: route boundaries, legacy links, generated security hashes, static routing, parsed workflow restrictions and executable negative deployment-gate cases.
-- Integration: real HTTP responses from BusyBox, exact packaged bytes, static policy text, redirects, 404s, source exclusion and licences. An additional HTTP wrapper verifies delivery of the generated security headers.
-- E2E: browser navigation/history, direct URLs and refresh, mouse/keyboard/skip-link focus, three narrow viewport sizes, no-JavaScript policies, bundled fonts, browser errors, external requests and browser storage. `SECURITY_HEADERS=1` applies the generated headers to actual responses, so Chromium enforces the CSP. The wrapper is not an Azure routing emulator.
+- Integration: real HTTP responses from BusyBox, exact packaged bytes, static page content, redirects, 404s, source exclusion and licences. An additional HTTP wrapper verifies delivery of the generated security headers.
+- E2E: browser navigation/history, direct URLs and refresh, mouse/keyboard/skip-link focus, responsive layouts from 320 to 1440 pixels, no-JavaScript pages, bundled fonts, browser errors, external requests and browser storage. Real pointer movement/clicks and emulated touch input check all four Home Focus numbers, their idle/highlight/restored colours and native list semantics. The AI title keeps its distinct styling; tapping only exercises Chromium's existing sticky hover, not selection or button behaviour. `SECURITY_HEADERS=1` applies the generated headers to actual responses, so Chromium enforces the CSP. The wrapper is not an Azure routing emulator.
 - Payload: built-file allowlist, font and licence integrity, private-text checks and dependency origins. This is bounded scanning, not a general security or accessibility certification.
 
 ## Routes and security
 
-`/`, `/privacy/` and `/terms/` have pre-rendered HTML. Azure's global [`trailingSlash: "always"`](https://learn.microsoft.com/en-us/azure/static-web-apps/configuration#trailing-slash) redirects `/privacy` and `/privacy/index.html` to `/privacy/` with status 301, and likewise for Terms. The directory URLs serve their static `index.html` files with status 200. Do not add separate slash/non-slash route rules: Azure normalises those paths and rejects the duplicate rules. Local configuration regressions guard this arrangement, not Azure runtime enforcement. Legacy `/#/home`, `/#/privacy` and `/#/terms` links work; unknown hash routes display Home. Unknown HTTP paths display Home with a 404 status, not a successful SPA fallback.
+`/`, `/cv/`, `/privacy/` and `/terms/` have pre-rendered HTML. Azure's global [`trailingSlash: "always"`](https://learn.microsoft.com/en-us/azure/static-web-apps/configuration#trailing-slash) redirects `/privacy` and `/privacy/index.html` to `/privacy/` with status 301, and likewise for CV and Terms. The directory URLs serve their static `index.html` files with status 200. Do not add separate slash/non-slash route rules: Azure normalises those paths and rejects the duplicate rules. Local configuration regressions guard this arrangement, not Azure runtime enforcement. Legacy `/#/home`, `/#/privacy` and `/#/terms` links work; unknown hash routes display Home. Unknown HTTP paths display Home with a 404 status, not a successful SPA fallback.
 
 CSS, JavaScript and four WOFF2 font faces are bundled into each HTML file. Third-party licences are in `dist/licenses/`. The build emits `dist/staticwebapp.config.json` from the root configuration and adds CSP hashes of the exact escaped inline script and style bytes. Animation delays live in CSS rather than inline attributes. No `unsafe-inline` or `unsafe-eval` permission is needed. The CSP denies network connections, forms, embedding and base-URL overrides; font and image data URLs remain permitted.
 

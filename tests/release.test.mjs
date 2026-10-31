@@ -5,7 +5,7 @@ import { createHash } from 'node:crypto';
 
 const json = async (file) => JSON.parse(await readFile(file, 'utf8'));
 test('public pages have no draft marker or noindex', async () => {
-  for (const file of ['index.html', 'privacy/index.html', 'terms/index.html']) {
+  for (const file of ['index.html', 'cv/index.html', 'privacy/index.html', 'terms/index.html']) {
     const html = await readFile(`dist/${file}`, 'utf8');
     assert.doesNotMatch(html, /Design draft, not for publication|name="robots" content="noindex"/);
   }
@@ -24,7 +24,7 @@ for (const file of ['staticwebapp.config.json', 'dist/staticwebapp.config.json']
     // then /page/ -> 200 from /page/index.html. No per-page rules are needed.
     assert.equal(config.trailingSlash, 'always');
     assert.deepEqual(config.routes.map(({ route }) => route), ['/.auth/login/aad', '/.auth/login/github']);
-    for (const page of ['privacy', 'terms']) {
+    for (const page of ['cv', 'privacy', 'terms']) {
       assert.match(await readFile(`dist/${page}/index.html`, 'utf8'), /^<!doctype html>/);
     }
     assert.deepEqual(config.responseOverrides, { '404': { rewrite: '/index.html', statusCode: 404 } });
@@ -44,7 +44,7 @@ for (const [index, provider] of ['aad', 'github'].entries()) {
 test('SWA headers authorise exactly the bundled inline script/style, no unsafe inline/eval', async () => {
   const { globalHeaders: headers } = await json('dist/staticwebapp.config.json');
   const csp = headers['Content-Security-Policy'];
-  for (const file of ['index.html', 'privacy/index.html', 'terms/index.html']) {
+  for (const file of ['index.html', 'cv/index.html', 'privacy/index.html', 'terms/index.html']) {
     const html = await readFile(`dist/${file}`, 'utf8');
     for (const tag of ['script', 'style']) {
       const bytes = html.match(new RegExp(`<${tag}>([\\s\\S]*?)</${tag}>`))[1];

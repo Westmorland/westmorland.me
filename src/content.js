@@ -2,27 +2,82 @@ export const site = {
   name: 'Dan Westmorland',
   domain: 'westmorland.me',
   role: 'Software lead',
+  location: 'Newcastle upon Tyne, UK',
 };
+
+export const profiles = [
+  { id: 'linkedin', label: 'LinkedIn', href: 'https://uk.linkedin.com/in/danwestmorland' },
+  { id: 'github', label: 'GitHub', href: 'https://github.com/Westmorland' },
+  { id: 'medium', label: 'Medium', href: 'https://medium.com/@westmorland' },
+];
 
 export const home = {
   giant: ['software', 'lead'],
-  strap: 'Architecture, delivery and people.',
+  strap: 'Software leadership, architecture and agentic AI delivery.',
   intro:
-    'I work across software architecture, delivery and mentoring, helping turn ideas into practical, maintainable software.',
-  focus: [
+    'I lead developers, shape architecture and help turn ideas into practical, maintainable software. That includes hands-on work with AI agents across delivery, with review, testing and human judgement built in.',
+};
+
+export const focus = [
+  { title: 'Architecture', body: 'Shaping systems that are clear to reason about and sensible to change.', cv: 'Technical leadership and architectural responsibility, shaping solutions that are robust, scalable and aligned to client needs.' },
+  { title: 'Delivery', body: 'Moving ideas into working software in small, steady, verifiable steps.', cv: 'Projects from small bespoke builds to large, complex systems, across design, implementation, deployment and ongoing support.' },
+  { title: 'People', body: 'Mentoring developers and helping teams do their best work together.', cv: 'Line management of software consultants from junior to senior, supporting their growth while keeping delivery quality high.' },
+  { title: 'Agentic AI software delivery', body: 'Using AI agents across software delivery, with clear scope, review, testing and human oversight.', cv: 'AI-assisted workflows from brief to tested change, with human oversight throughout.', isAi: true },
+];
+
+export const ai = {
+  heading: 'Agentic AI delivery',
+  body:
+    'I design and use AI-assisted workflows across software delivery, from breaking down a brief and coordinating agents through to implementation, review and testing. My focus is making that work repeatable and verifiable, with clear responsibilities and human judgement at the points that matter.',
+  steps: [
+    ['Brief', 'Break the work into scoped, reviewable pieces.'],
+    ['Build', 'Coordinate agents through implementation.'],
+    ['Check', 'Review and test the result before it is accepted.'],
+    ['Decide', 'People own priorities, acceptance and release.'],
+  ],
+};
+
+export const cv = {
+  headline: 'Software lead and architect',
+  lede: 'Extensive experience in full-stack .NET development, leading projects from small bespoke builds to large, complex systems.',
+  profile: [
+    'I line-manage software consultants from junior to senior, supporting their growth while keeping delivery quality high. Alongside hands-on development, I take on technical leadership and architecture, and advise clients on the best use of technology for their business challenges.',
+    'My work covers the full lifecycle, from design and implementation to deployment and ongoing support.',
+  ],
+  current: {
+    title: 'Software Team Lead',
+    org: 'Waterstons',
+    short: '2022 to now',
+    since: 'since 2019',
+    workplace: 'Based in Newcastle upon Tyne, I work in Durham as a Software Team Lead at Waterstons, within the Digital Solutions software development team.',
+    points: [
+      'Supporting the growth and development of a highly skilled software team across projects, clients and industries.',
+      'Helping clients develop ideas into release-ready software.',
+    ],
+  },
+  waterstons: {
+    progression: 'Earlier roles: Senior Software Consultant and Senior Software Consultant Lead.',
+    description: 'My work at Waterstons spans hands-on development, technical leadership, architecture, client advice and mentoring.',
+  },
+  earlier: [
     {
-      title: 'Architecture',
-      body: 'Shaping systems that are clear to reason about and sensible to change.',
+      org: 'Oak Intranet',
+      title: 'Developer and Lead Software Developer',
+      description: 'Worked on the development of Oak’s intranet platform, helping organisations connect their people, share information and improve internal communication. Progressed from platform development to Lead Software Developer.',
     },
     {
-      title: 'Delivery',
-      body: 'Moving ideas into working software in small, steady, verifiable steps.',
+      org: 'Creating Careers / vision2learn',
+      title: 'Developer',
+      description: 'Developed functionality for the vision2learn e-learning platform, supporting learners studying online and improving the efficiency of the operations team. Worked with ASP.NET to extend the platform’s capabilities.',
     },
     {
-      title: 'People',
-      body: 'Mentoring developers and helping teams do their best work together.',
+      org: 'Tata Steel',
+      title: 'Training Facilitator',
+      description: 'Responsible for on-site employee training at Tata Steel.',
     },
   ],
+  stack: ['C# and .NET', 'Azure', 'React', 'SQL Server', 'Azure DevOps', 'Docker'],
+  education: [{ award: 'BSc Computer Studies', place: 'Teesside University' }],
 };
 
 export const privacy = {

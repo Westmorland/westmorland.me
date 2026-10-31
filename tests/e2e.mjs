@@ -69,25 +69,86 @@ await send('Runtime.enable'); await send('Log.enable'); await send('Network.enab
 await send('Page.navigate', { url: file }); await sleep(1200);
 let s = await state();
 check('default route is Home', /software lead/i.test(s.h1) && s.title === 'Dan Westmorland' && /Home/.test(s.current), JSON.stringify(s));
-check('draft marker absent', await ev(`document.querySelector('.vw-draft') === null`));
+check('draft marker absent', await ev(`document.querySelector('.vw-draft, .draft') === null`));
 
-// Real mouse clicks on header nav
-for (const p of ['privacy', 'terms', 'home']) {
-  const r = await ev(`(() => { const b = document.querySelector('[data-testid=nav-${p}]').getBoundingClientRect(); return {x: b.x + b.width/2, y: b.y + b.height/2}; })()`);
+// Focus is a native list, not selectable controls. Exercise real browser input,
+// including Chromium's existing sticky :hover after touch, without DOM .click().
+const focusState = () => ev(`Array.from(document.querySelectorAll('.cc-focus li'), li => {
+  const title = getComputedStyle(li.querySelector('h3'));
+  return { hover: li.matches(':hover'), colour: getComputedStyle(li.querySelector('.cc-focus-num')).color,
+    title: [title.color, title.fontSize, title.lineHeight, title.fontWeight],
+    native: li.tagName === 'LI' && li.parentElement.tagName === 'OL' && !li.hasAttribute('role') && !li.hasAttribute('tabindex') &&
+      !li.hasAttribute('aria-selected') && !li.hasAttribute('aria-pressed') && !li.querySelector('button, a, [role], [tabindex]') };
+})`);
+const idleColours = ['rgb(52, 53, 46)', 'rgb(52, 53, 46)', 'rgb(52, 53, 46)', 'rgb(75, 90, 20)'];
+const signalColour = 'rgb(212, 255, 58)';
+const focusPoint = async (index) => ev(`(() => {
+  const li = document.querySelectorAll('.cc-focus li')[${index}];
+  li.scrollIntoView({block: 'center'});
+  const b = li.getBoundingClientRect(); return {x: b.x + b.width / 2, y: b.y + b.height / 2};
+})()`);
+const mouse = async (type, point) => send('Input.dispatchMouseEvent', { type, ...point,
+  ...(type === 'mouseMoved' ? {} : {button: 'left', clickCount: 1}) });
+const tap = async (point) => {
+  await send('Input.dispatchTouchEvent', {type: 'touchStart', touchPoints: [{...point, id: 1}]});
+  await send('Input.dispatchTouchEvent', {type: 'touchEnd', touchPoints: []});
+};
+for (const mode of ['pointer', 'touch']) {
+  await send('Emulation.setDeviceMetricsOverride', {width: mode === 'touch' ? 390 : 1440, height: 900, deviceScaleFactor: 1, mobile: mode === 'touch'});
+  await send('Emulation.setTouchEmulationEnabled', {enabled: mode === 'touch'});
+  await mouse('mouseMoved', {x: 0, y: 0});
+  await send('Page.navigate', {url: file}); await sleep(1000);
+  await ev(`document.fonts.ready`);
+  const idle = await focusState();
+  check(`${mode} Focus initial idle colours and native list`, idle.length === 4 && idle.every((r, i) => !r.hover && r.colour === idleColours[i] && r.native), JSON.stringify(idle));
+  check(`${mode} Focus AI heading retains distinct styling`, idle[3].title[0] === signalColour && idle[3].title[3] === '800' && parseFloat(idle[3].title[1]) < parseFloat(idle[0].title[1]), JSON.stringify(idle[3].title));
+  await ev(`window.focusInput = []; for (const type of ['pointermove', 'click', 'touchstart', 'touchend']) document.querySelector('.cc-focus').addEventListener(type, e => window.focusInput.push({type, trusted: e.isTrusted, pointerType: e.pointerType, row: [...document.querySelectorAll('.cc-focus li')].indexOf(e.target.closest('li'))}));`);
+  for (let i = 0; i < 4; i++) {
+    const point = await focusPoint(i);
+    if (mode === 'pointer') {
+      await mouse('mouseMoved', point); await sleep(300); // Beyond the real 200ms colour transition.
+      const hovered = await focusState();
+      check(`pointer Focus 0${i + 1} movement highlights`, hovered[i].hover && hovered[i].colour === signalColour, JSON.stringify(hovered[i]));
+      await mouse('mousePressed', point); await mouse('mouseReleased', point);
+    } else await tap(point);
+    await sleep(300);
+    const active = await focusState();
+    check(`${mode} Focus 0${i + 1} ${mode === 'touch' ? 'tap' : 'click'} highlights only hovered row`, active.every((r, j) => r.hover === (j === i) && r.colour === (j === i ? signalColour : idleColours[j]) && r.native && JSON.stringify(r.title) === JSON.stringify(idle[j].title)), JSON.stringify(active));
+    check(`${mode} Focus 0${i + 1} input leaves route and list semantics unchanged`, await ev(`location.pathname === '/' && document.querySelectorAll('.cc-focus li').length === 4 && document.querySelectorAll('.cc-focus [aria-selected], .cc-focus [aria-pressed], .cc-focus [tabindex], .cc-focus [role], .cc-focus button').length === 0`));
+    if (mode === 'pointer') await mouse('mouseMoved', {x: 0, y: 0});
+    else await tap({x: 2, y: 2}); // Outside the inset list: clear native sticky hover.
+    await sleep(300);
+    const restored = await focusState();
+    check(`${mode} Focus 0${i + 1} departure restores idle colours`, restored.every((r, j) => !r.hover && r.colour === idleColours[j] && JSON.stringify(r.title) === JSON.stringify(idle[j].title)), JSON.stringify(restored));
+  }
+  const events = await ev('window.focusInput');
+  check(`${mode} Focus trusted input reached all four rows`, [0, 1, 2, 3].every(row => (mode === 'touch' ? ['touchstart', 'touchend', 'click'] : ['pointermove', 'click']).every(type => events.some(e => e.row === row && e.type === type && e.trusted && (type !== 'pointermove' || e.pointerType === 'mouse')))), JSON.stringify(events));
+}
+await send('Emulation.setTouchEmulationEnabled', {enabled: false});
+await send('Emulation.clearDeviceMetricsOverride');
+await mouse('mouseMoved', {x: 0, y: 0});
+await send('Page.navigate', {url: file}); await sleep(1000);
+
+// Real mouse navigation across header and footer.
+for (const p of ['cv', 'privacy', 'terms', 'home']) {
+  const selector = ['home', 'cv'].includes(p) ? `[data-testid=nav-${p}]` : `.cc-foot a[href="/${p}/"]`;
+  await ev(`document.querySelector('${selector}').scrollIntoView({block: 'center'})`);
+  const r = await ev(`(() => { const b = document.querySelector('${selector}').getBoundingClientRect(); return {x: b.x + b.width/2, y: b.y + b.height/2}; })()`);
   for (const type of ['mousePressed', 'mouseReleased']) await send('Input.dispatchMouseEvent', { type, x: r.x, y: r.y, button: 'left', clickCount: 1 });
   await sleep(400); s = await state();
-  check(`mouse click header nav -> ${p}`, s.pathname === (p === 'home' ? '/' : `/${p}/`) && s.current?.toLowerCase().includes(p), JSON.stringify(s));
+  check(`mouse click navigation -> ${p}`, s.pathname === (p === 'home' ? '/' : `/${p}/`) && s.title === (p === 'home' ? 'Dan Westmorland' : `${p === 'cv' ? 'CV' : p[0].toUpperCase() + p.slice(1)} · Dan Westmorland`), JSON.stringify(s));
 }
-// Keyboard: Tab from top to Terms link and press Enter
+// Keyboard: header CV and Home call to action remain in logical order.
 const fresh = async (h) => { await send('Page.navigate', { url: 'about:blank' }); await sleep(300); await send('Page.navigate', { url: h.startsWith('/') ? server.url + h : file + h }); await sleep(1000); };
 await fresh('#/home');
 const order = [];
 for (let i = 0; i < 5; i++) { await key('Tab', 'Tab', 9); order.push(await ev(`document.activeElement.textContent.trim().slice(0, 40)`)); }
-check('tab order: skip link, name, Home, Privacy, Terms', order.slice(0, 5).join('|') === 'Skip to content|DAN WESTMORLAND|01 Home|02 Privacy|03 Terms', order.join(' | '));
+check('tab order: skip link, name, Home, CV, Read the CV', order.slice(0, 5).join('|') === 'Skip to content|DAN WESTMORLAND|01 Home|02 CV|Read the CV →', order.join(' | '));
 await fresh('#/home');
-for (let i = 0; i < 5; i++) await key('Tab', 'Tab', 9);
+for (let i = 0; i < 4; i++) await key('Tab', 'Tab', 9);
+check('keyboard focus has a visible outline', await ev(`getComputedStyle(document.activeElement).outlineStyle === 'solid' && parseFloat(getComputedStyle(document.activeElement).outlineWidth) >= 2`));
 await key('Enter', 'Enter', 13); await sleep(400); s = await state();
-check('keyboard Enter on Terms navigates', s.pathname === '/terms/' && s.title === 'Terms · Dan Westmorland', JSON.stringify(s));
+check('keyboard Enter on CV navigates', s.pathname === '/cv/' && s.title === 'CV · Dan Westmorland', JSON.stringify(s));
 check('focus moves to main after navigation', (await ev(`document.activeElement.id`)) === 'main');
 // Skip link
 await fresh('#/home');
@@ -103,22 +164,22 @@ await ev(`document.querySelector('.cc-psec a[href="/privacy/"]').click()`); awai
 check('Terms in-copy privacy link', s.pathname === '/privacy/', s.hash);
 await ev(`location.hash = '#/nonsense'`); await sleep(300); s = await state();
 check('unknown route falls back to Home', /Home/.test(s.current), JSON.stringify(s));
-check('only three nav pages', (await ev(`document.querySelectorAll('.cc-head nav a').length`)) === 3);
+check('only Home and CV in header', (await ev(`Array.from(document.querySelectorAll('.cc-head nav a'), a => a.getAttribute('href')).join('|')`)) === '/|/cv/');
 
 // Direct URLs and refresh use the actual static server, not a history fallback dev server.
-for (const [route, title] of [['/', 'Dan Westmorland'], ['/privacy/', 'Privacy · Dan Westmorland'], ['/terms/', 'Terms · Dan Westmorland']]) {
+for (const [route, title] of [['/', 'Dan Westmorland'], ['/cv/', 'CV · Dan Westmorland'], ['/privacy/', 'Privacy · Dan Westmorland'], ['/terms/', 'Terms · Dan Westmorland']]) {
   await fresh(route);
   check(`direct ${route}`, (await state()).title === title && (await state()).pathname === route);
   await send('Page.reload'); await sleep(1000);
   check(`refresh ${route}`, (await state()).title === title && (await state()).pathname === route);
 }
-for (const p of ['home', 'privacy', 'terms']) {
+for (const p of ['home', 'cv', 'privacy', 'terms']) {
   await fresh(`/#/${p}`);
-  check(`legacy #/${p} compatible`, (await state()).current.toLowerCase().includes(p));
+  check(`legacy #/${p} compatible`, (await state()).title === (p === 'home' ? 'Dan Westmorland' : `${p === 'cv' ? 'CV' : p[0].toUpperCase() + p.slice(1)} · Dan Westmorland`));
 }
 await fresh('/');
-await ev(`document.querySelector('[data-testid=nav-privacy]').click()`); await sleep(300);
-await ev(`document.querySelector('[data-testid=nav-terms]').click()`); await sleep(300);
+await ev(`document.querySelector('.cc-foot a[href="/privacy/"]').click()`); await sleep(300);
+await ev(`document.querySelector('.cc-foot a[href="/terms/"]').click()`); await sleep(300);
 await ev('history.back()'); await sleep(300);
 check('browser Back restores Privacy', (await state()).title === 'Privacy · Dan Westmorland');
 await ev('history.forward()'); await sleep(300);
@@ -131,40 +192,97 @@ check('name returns Home', (await state()).title === 'Dan Westmorland');
 check('no forms, embeds or stored browser data', await ev(`document.querySelectorAll('form, input, iframe').length === 0 && document.cookie === '' && localStorage.length === 0 && sessionStorage.length === 0`));
 check('noindex absent', await ev(`document.querySelector('meta[name=robots]') === null`));
 
-// Static policies must remain useful with script execution disabled.
+// Accepted Home -> CV -> legal journey and browser history.
+await fresh('/');
+await ev(`document.querySelector('.home-cv').click()`); await sleep(300);
+check('Read the CV opens the native CV', (await state()).pathname === '/cv/');
+await ev(`document.querySelector('.cc-foot a[href="/privacy/"]').click()`); await sleep(300);
+await ev('history.back()'); await sleep(300);
+check('Back from legal restores CV and focus', (await state()).title === 'CV · Dan Westmorland' && await ev(`document.activeElement.id === 'main'`));
+await ev('history.forward()'); await sleep(300);
+check('Forward from CV restores legal', (await state()).title === 'Privacy · Dan Westmorland');
+for (const route of ['/', '/cv/', '/privacy/', '/terms/']) {
+  await fresh(route);
+  const expectedProfiles = ['https://uk.linkedin.com/in/danwestmorland', 'https://github.com/Westmorland', 'https://medium.com/@westmorland'];
+  const links = await ev(`Array.from(document.querySelectorAll('a[href^="https:"]'), a => a.href)`);
+  const expected = ['/', '/cv/'].includes(route) ? [...expectedProfiles, ...expectedProfiles] : expectedProfiles;
+  check(`exact social navigation links ${route}`, JSON.stringify(links) === JSON.stringify(expected));
+  check(`no forms or stored data ${route}`, await ev(`document.querySelectorAll('form, input, iframe').length === 0 && document.cookie === '' && localStorage.length === 0 && sessionStorage.length === 0`));
+}
+// Every direct page remains useful with script execution disabled.
 await send('Emulation.setScriptExecutionDisabled', { value: true });
-for (const route of ['/privacy/', '/terms/']) {
+for (const route of ['/', '/cv/', '/privacy/', '/terms/']) {
   await fresh(route);
   const markup = (await send('DOM.getDocument')).result.root;
   const main = (await send('DOM.querySelector', { nodeId: markup.nodeId, selector: 'main' })).result.nodeId;
   const html = (await send('DOM.getOuterHTML', { nodeId: main })).result.outerHTML;
-  check(`no-JavaScript policy ${route}`, html.includes(route === '/privacy/' ? 'Visiting this website' : 'The application'));
+  if (route === '/cv/') check('no-JavaScript expanded career', ['Training Facilitator', 'Creating Careers / vision2learn', 'Senior Software Consultant Lead', 'Responsible for on-site employee training at Tata Steel.'].every(t => html.includes(t)) && !html.includes('Training Manager'));
+  check(`no-JavaScript page ${route}`, html.includes(route === '/' ? 'Agentic AI software delivery' : route === '/cv/' ? 'Software lead and architect' : route === '/privacy/' ? 'Visiting this website' : 'The application'));
+}
+await fresh('/');
+for (const [selector, route, expectedText] of [['.home-cv', '/cv/', 'Software lead and architect'], ['.cc-foot a[href="/privacy/"]', '/privacy/', 'Visiting this website'], ['.cc-foot a[href="/terms/"]', '/terms/', 'The application'], ['.cc-head a[href="/"]', '/', 'Agentic AI software delivery']]) {
+  const rootNode = (await send('DOM.getDocument')).result.root.nodeId;
+  const nodeId = (await send('DOM.querySelector', { nodeId: rootNode, selector })).result.nodeId;
+  await send('DOM.scrollIntoViewIfNeeded', { nodeId });
+  const box = (await send('DOM.getBoxModel', { nodeId })).result.model.content;
+  for (const type of ['mousePressed', 'mouseReleased']) await send('Input.dispatchMouseEvent', { type, x: (box[0] + box[2]) / 2, y: (box[1] + box[5]) / 2, button: 'left', clickCount: 1 });
+  await sleep(500);
+  const history = (await send('Page.getNavigationHistory')).result;
+  const currentRoot = (await send('DOM.getDocument')).result.root.nodeId;
+  const mainId = (await send('DOM.querySelector', { nodeId: currentRoot, selector: 'main' })).result.nodeId;
+  const markup = (await send('DOM.getOuterHTML', { nodeId: mainId })).result.outerHTML;
+  check(`no-JavaScript mouse navigation ${route}`, history.entries[history.currentIndex].url === server.url + route && markup.includes(expectedText));
 }
 await send('Emulation.setScriptExecutionDisabled', { value: false });
 await fresh('/');
+await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] });
+check('reduced motion leaves heading visible without animation', await ev(`Array.from(document.querySelectorAll('.cc-giant span')).every(e => getComputedStyle(e).animationName === 'none' && getComputedStyle(e).opacity === '1')`));
+await send('Emulation.setEmulatedMedia', { features: [] });
 check('local display and label fonts loaded', await ev(`document.fonts.check('800 32px "Bricolage Grotesque"') && document.fonts.check('400 13px "JetBrains Mono"')`));
 
 // Overflow at narrow widths
-for (const w of [320, 375, 390]) {
+for (const w of [320, 375, 390, 768, 1440]) {
   await send('Emulation.setDeviceMetricsOverride', { width: w, height: 800, deviceScaleFactor: 2, mobile: true });
-  for (const p of ['home', 'privacy', 'terms']) {
+  for (const p of ['home', 'cv', 'privacy', 'terms']) {
     await ev(`location.hash = '#/${p}'`); await sleep(900);
     const ov = await ev(`document.documentElement.scrollWidth - document.documentElement.clientWidth`);
     check(`${w}px no horizontal overflow ${p}`, ov <= 0, `overflow=${ov}px`);
+    if (w <= 768) check(`${w}px practical navigation targets ${p}`, await ev(`Array.from(document.querySelectorAll('.cc-head nav a, .pl a, .home-cv, .cc-foot nav a')).every(a => a.getBoundingClientRect().height >= 44)`));
+    if (p === 'cv') {
+      const career = await ev(`(() => {
+        const rows = [...document.querySelectorAll('[aria-labelledby="b-exp"] article')];
+        return { text: rows.map(r => r.innerText).join('\\n'), titles: rows.map(r => r.querySelector('h3').textContent), readable: rows.every((r, i) => {
+          const box = r.getBoundingClientRect();
+          return box.width > 0 && (i === 0 || box.top >= rows[i - 1].getBoundingClientRect().bottom) &&
+            [...r.querySelectorAll('h3, p, li')].every(e => {
+              const b = e.getBoundingClientRect(), s = getComputedStyle(e);
+              return b.width > 0 && b.height > 0 && b.left >= 0 && b.right <= innerWidth && e.scrollWidth <= e.clientWidth + 1 && e.scrollHeight <= e.clientHeight + 1 && s.visibility === 'visible' && s.opacity === '1';
+            });
+        }) };
+      })()`);
+      const tata = await ev(`(() => {
+        const row = [...document.querySelectorAll('[aria-labelledby="b-exp"] article')].find(r => r.querySelector('.b-org')?.textContent === 'Tata Steel');
+        return row && {title: row.querySelector('h3').textContent, description: row.querySelector('div > p:last-child').textContent, text: row.innerText};
+      })()`);
+      check(`${w}px Tata Steel exact training-only copy`, tata?.title === 'Training Facilitator' && tata.description === 'Responsible for on-site employee training at Tata Steel.' && !/design|develop|software|courses?|manag|400|achievement/i.test(tata.text), JSON.stringify(tata));
+      check(`${w}px all expanded career entries readable`, career.readable && JSON.stringify(career.titles) === JSON.stringify(['Software Team Lead', 'Developer and Lead Software Developer', 'Developer', 'Training Facilitator']));
+      check(`${w}px career details and date exclusions`, ['Senior Software Consultant and Senior Software Consultant Lead', 'Creating Careers / vision2learn', 'Responsible for on-site employee training at Tata Steel.', 'client advice and mentoring', 'improve internal communication', 'Worked with ASP.NET', '2022 to now', 'since 2019'].every(t => career.text.includes(t)) && !/Training Manager|2010|2011|2012|2014|2018|disputed|indexed/.test(career.text));
+      check(`${w}px CV reading/layout order`, await ev(`(() => { const main = document.querySelector('.b-main'), side = document.querySelector('.b-side'); return !!(main.compareDocumentPosition(side) & Node.DOCUMENT_POSITION_FOLLOWING) && (${w} <= 860 ? side.getBoundingClientRect().top >= main.getBoundingClientRect().bottom : side.getBoundingClientRect().left < main.getBoundingClientRect().left); })()`));
+    }
   }
 }
 
 // Screenshots: full page, desktop 1440 and mobile 390
 await mkdir(output, { recursive: true });
 for (const [label, w, dsf, mobile] of [['desktop', 1440, 1, false], ['mobile', 390, 2, true]]) {
-  for (const p of ['home', 'privacy', 'terms']) {
+  for (const p of ['home', 'cv', 'privacy', 'terms']) {
     await send('Emulation.setDeviceMetricsOverride', { width: w, height: 900, deviceScaleFactor: dsf, mobile });
     await ev(`location.hash = '#/x'`); await sleep(100);
     await ev(`location.hash = '#/${p}'`); await sleep(1300);
-    const h = await ev(`document.documentElement.scrollHeight`);
-    await send('Emulation.setDeviceMetricsOverride', { width: w, height: h, deviceScaleFactor: dsf, mobile });
-    await sleep(300);
-    const shot = await send('Page.captureScreenshot', { format: 'png' });
+    // Capture the document without enlarging the viewport: vh-based spacing must
+    // not change between measuring height and taking the screenshot.
+    const metrics = (await send('Page.getLayoutMetrics')).result.cssContentSize;
+    const shot = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true, clip: { x: 0, y: 0, width: metrics.width, height: metrics.height, scale: 1 } });
     await writeFile(`${output}/${p}-${label}.png`, Buffer.from(shot.result.data, 'base64'));
   }
 }

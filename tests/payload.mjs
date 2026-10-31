@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict';
 import { readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
+import { checkResourceAttributes } from './resource-policy.mjs';
 import { createHash } from 'node:crypto';
 
 const files = async (dir) => (await Promise.all((await readdir(dir, { withFileTypes: true })).map(async (entry) => entry.isDirectory() ? files(path.join(dir, entry.name)) : path.join(dir, entry.name)))).flat();
-const expected = ['staticwebapp.config.json', 'index.html', 'privacy/index.html', 'terms/index.html', 'licenses/bricolage-grotesque-OFL.txt', 'licenses/jetbrains-mono-OFL.txt', 'licenses/react-MIT.txt', 'licenses/react-dom-MIT.txt', 'licenses/scheduler-MIT.txt'].sort();
+const expected = ['staticwebapp.config.json', 'index.html', 'cv/index.html', 'privacy/index.html', 'terms/index.html', 'licenses/bricolage-grotesque-OFL.txt', 'licenses/jetbrains-mono-OFL.txt', 'licenses/react-MIT.txt', 'licenses/react-dom-MIT.txt', 'licenses/scheduler-MIT.txt'].sort();
 assert.deepEqual((await files('dist')).map((file) => file.slice(5)).sort(), expected);
 const deny = process.env.PAYLOAD_DENY_FILE ? JSON.parse(await readFile(process.env.PAYLOAD_DENY_FILE, 'utf8')) : [];
 assert.ok(Array.isArray(deny) && deny.every((value) => typeof value === 'string' && value.length > 0));
@@ -35,7 +36,7 @@ for (const file of expected.filter((file) => file.endsWith('.html'))) {
   assert.doesNotMatch(text, /Design draft, not for publication/);
   assert.ok(!/<(?:form|iframe|input|script[^>]*src=)\b/i.test(text));
   assert.equal((text.match(/data:font\/woff2;base64,/g) || []).length, 4);
-  assert.ok(!/(?:src|href)="https?:/i.test(text), 'external resource attribute');
+  checkResourceAttributes(text);
 }
 for (const font of ['bricolage-grotesque', 'jetbrains-mono']) {
   assert.equal(await readFile(`dist/licenses/${font}-OFL.txt`, 'utf8'), await readFile(`node_modules/@fontsource/${font}/LICENSE`, 'utf8'));
