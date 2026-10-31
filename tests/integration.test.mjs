@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { startServer } from './server.mjs';
 import { withSecurityHeaders } from './headers.mjs';
-import { PAGES } from '../src/routing.js';
+import { PAGES } from '../src/routing.ts';
 
 let server;
 before(async () => { server = await startServer(); });
@@ -50,7 +50,7 @@ test('unknown path returns Home with an honest 404 status', async () => {
   assert.equal(await response.text(), await readFile('dist/index.html', 'utf8'));
 });
 test('private source paths are not served', async () => {
-  for (const name of ['package.json', 'src/content.js', '.git/config', 'Dockerfile']) {
+  for (const name of ['package.json', 'src/content.js', 'src/content.ts', 'src/Site.tsx', 'build.ts', 'tsconfig.json', '.git/config', 'Dockerfile']) {
     const response = await fetch(`${server.url}/${name}`);
     assert.equal(response.status, 404);
     assert.equal(await response.text(), await readFile('dist/index.html', 'utf8'));

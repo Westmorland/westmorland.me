@@ -26,6 +26,8 @@ jobs:
       - name: Install and build
         run: |
           npm ci --ignore-scripts --no-audit --no-fund
+          npm run typecheck
+          npm run lint
           npm run build
           git diff --exit-code -- dist
       - name: Unit, HTTP, browser and payload checks

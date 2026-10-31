@@ -71,6 +71,34 @@ let s = await state();
 check('default route is Home', /software lead/i.test(s.h1) && s.title === 'Dan Westmorland' && /Home/.test(s.current), JSON.stringify(s));
 check('draft marker absent', await ev(`document.querySelector('.vw-draft, .draft') === null`));
 
+// Delegated navigation: browser-normalised text targets, nested spans and native
+// opt-outs. Cancel native actions only AFTER React observes the event, preventing
+// external tabs/downloads while checking whether the app intercepted each click.
+const delegated = await ev(`(() => {
+  const anchor = document.querySelector('.home-cv');
+  const cases = [];
+  const observe = (name, target, init = {}) => {
+    let intercepted;
+    const finish = e => { intercepted = e.defaultPrevented; e.preventDefault(); };
+    document.addEventListener('click', finish, {once: true});
+    target.dispatchEvent(new MouseEvent('click', {bubbles: true, cancelable: true, ...init}));
+    cases.push({name, intercepted});
+  };
+  for (const modifier of ['metaKey', 'ctrlKey', 'shiftKey', 'altKey']) observe(modifier, anchor, {[modifier]: true});
+  observe('secondary button', anchor, {button: 1});
+  anchor.setAttribute('download', 'cv'); observe('download', anchor); anchor.removeAttribute('download');
+  anchor.target = '_blank'; observe('new tab', anchor); anchor.removeAttribute('target');
+  const cancel = e => e.preventDefault();
+  anchor.addEventListener('click', cancel); observe('already cancelled', anchor); anchor.removeEventListener('click', cancel);
+  observe('non-link', document.querySelector('h1'));
+  observe('nested span', anchor.querySelector('span'));
+  observe('text node', anchor.firstChild);
+  return cases;
+})()`);
+check('delegated navigation preserves modifier, download, target and non-link behaviour', delegated.filter(c => !['nested span', 'text node', 'already cancelled'].includes(c.name)).every(c => c.intercepted === false), JSON.stringify(delegated));
+check('delegated navigation handles nested and text targets', delegated.filter(c => ['nested span', 'text node', 'already cancelled'].includes(c.name)).every(c => c.intercepted === true), JSON.stringify(delegated));
+await send('Page.navigate', {url: file}); await sleep(1000);
+
 // Focus is a native list, not selectable controls. Exercise real browser input,
 // including Chromium's existing sticky :hover after touch, without DOM .click().
 const focusState = () => ev(`Array.from(document.querySelectorAll('.cc-focus li'), li => {

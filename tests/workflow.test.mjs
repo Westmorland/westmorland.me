@@ -15,7 +15,7 @@ test('workflow provides unprivileged PR and main Website validation', async () =
   assert.equal(flow.jobs.validation.environment, undefined);
   assert.equal(flow.concurrency, undefined, 'PR validation must not share the production queue');
   const commands = flow.jobs.validation.steps.filter((s) => s.run).map((s) => s.run).join('\n');
-  for (const cmd of ['npm ci --ignore-scripts --no-audit --no-fund', 'npm run build', 'npm test', 'npm run test:integration', 'npm run test:e2e', 'npm run check:payload', 'git diff --exit-code -- dist']) assert.ok(commands.includes(cmd), cmd);
+  for (const cmd of ['npm ci --ignore-scripts --no-audit --no-fund', 'npm run typecheck', 'npm run lint', 'npm run build', 'npm test', 'npm run test:integration', 'npm run test:e2e', 'npm run check:payload', 'git diff --exit-code -- dist']) assert.ok(commands.includes(cmd), cmd);
 });
 test('workflow keeps read-only permissions, pinned actions and secrets only at the production boundary', async () => {
   const flow = await workflow();

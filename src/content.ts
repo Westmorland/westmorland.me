@@ -1,3 +1,35 @@
+export interface Profile {
+  id: string;
+  label: string;
+  href: `https://${string}`;
+}
+
+export interface FocusItem {
+  title: string;
+  body: string;
+  cv: string;
+  isAi?: boolean;
+}
+
+export interface PolicyDocument {
+  title: string;
+  intro: string;
+  sections: {
+    id: string;
+    title: string;
+    body: string[];
+    link?: boolean;
+    list?: { term: string; text: string }[];
+    after?: string[];
+  }[];
+}
+
+interface AiContent {
+  heading: string;
+  body: string;
+  steps: [title: string, description: string][];
+}
+
 export const site = {
   name: 'Dan Westmorland',
   domain: 'westmorland.me',
@@ -5,7 +37,7 @@ export const site = {
   location: 'Newcastle upon Tyne, UK',
 };
 
-export const profiles = [
+export const profiles: Profile[] = [
   { id: 'linkedin', label: 'LinkedIn', href: 'https://uk.linkedin.com/in/danwestmorland' },
   { id: 'github', label: 'GitHub', href: 'https://github.com/Westmorland' },
   { id: 'medium', label: 'Medium', href: 'https://medium.com/@westmorland' },
@@ -18,14 +50,14 @@ export const home = {
     'I lead developers, shape architecture and help turn ideas into practical, maintainable software. That includes hands-on work with AI agents across delivery, with review, testing and human judgement built in.',
 };
 
-export const focus = [
+export const focus: FocusItem[] = [
   { title: 'Architecture', body: 'Shaping systems that are clear to reason about and sensible to change.', cv: 'Technical leadership and architectural responsibility, shaping solutions that are robust, scalable and aligned to client needs.' },
   { title: 'Delivery', body: 'Moving ideas into working software in small, steady, verifiable steps.', cv: 'Projects from small bespoke builds to large, complex systems, across design, implementation, deployment and ongoing support.' },
   { title: 'People', body: 'Mentoring developers and helping teams do their best work together.', cv: 'Line management of software consultants from junior to senior, supporting their growth while keeping delivery quality high.' },
   { title: 'Agentic AI software delivery', body: 'Using AI agents across software delivery, with clear scope, review, testing and human oversight.', cv: 'AI-assisted workflows from brief to tested change, with human oversight throughout.', isAi: true },
 ];
 
-export const ai = {
+export const ai: AiContent = {
   heading: 'Agentic AI delivery',
   body:
     'I design and use AI-assisted workflows across software delivery, from breaking down a brief and coordinating agents through to implementation, review and testing. My focus is making that work repeatable and verifiable, with clear responsibilities and human judgement at the points that matter.',
@@ -80,7 +112,7 @@ export const cv = {
   education: [{ award: 'BSc Computer Studies', place: 'Teesside University' }],
 };
 
-export const privacy = {
+export const privacy: PolicyDocument = {
   title: 'Privacy',
   intro:
     'This notice explains how information is used by this website and its associated personal Google-connected application.',
@@ -138,7 +170,7 @@ export const privacy = {
   ],
 };
 
-export const terms = {
+export const terms: PolicyDocument = {
   title: 'Terms',
   intro: 'These terms apply to this website and to its associated personal Google-connected application.',
   sections: [
