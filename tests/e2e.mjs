@@ -352,5 +352,7 @@ check('no console errors/warnings/exceptions', consoleMsgs.length === 0, console
     const exited = once(proc, 'exit'); proc.kill(); await exited;
   }
   await server.stop();
-  await rm(profile, { recursive: true, force: true });
+  // Retry transient filesystem errors after browser exit, not the browser tests.
+  // Node bounds retries per path: 100 + 200 + 300ms backoff; final errors reject.
+  await rm(profile, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
 }
