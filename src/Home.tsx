@@ -1,4 +1,4 @@
-import { site, home, focus } from './content.ts';
+import { site, home, focus, selectedExperience } from './content.ts';
 import { ProfileLinks } from './ProfileLinks.tsx';
 import { pad } from './format.ts';
 
@@ -33,6 +33,18 @@ export function Home() {
             </li>
           ))}
         </ol>
+      </section>
+      <section className="cc-experience" aria-labelledby="cc-experience-h">
+        <h2 id="cc-experience-h">{selectedExperience.heading}</h2>
+        <p className="cc-experience-intro">{selectedExperience.intro}</p>
+        <div className="cc-experience-cards">
+          {selectedExperience.cards.map((card) => (
+            <article key={card.title}>
+              <h3>{card.title}</h3>
+              <p>{card.body}</p>
+            </article>
+          ))}
+        </div>
       </section>
     </div>
   );
