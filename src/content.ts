@@ -57,6 +57,25 @@ export const focus: FocusItem[] = [
   { title: 'Agentic AI software delivery', body: 'Using AI agents across software delivery, with clear scope, review, testing and human oversight.', cv: 'AI-assisted workflows from brief to tested change, with human oversight throughout.', isAi: true },
 ];
 
+export const selectedExperience = {
+  heading: 'Selected experience',
+  intro: 'My experience spans hands-on development, architecture and technical leadership.',
+  cards: [
+    {
+      title: 'Building for changing demand',
+      body: 'As lead developer on an online platform, I worked with cloud services to accommodate peaks in demand and quieter periods. The challenge was to increase capacity when needed and reduce it when demand fell.',
+    },
+    {
+      title: 'Handling complex business rules',
+      body: 'As a senior developer, I worked on an application with calculation rules that varied between projects. The work involved modelling those rules and supporting background processing.',
+    },
+    {
+      title: 'Architecture and technical leadership',
+      body: 'I was lead architect and technical lead for a data and workflow management system. My current software lead work includes managing technical risk, translating requirements into user stories and managing an agile development team.',
+    },
+  ],
+};
+
 export const ai: AiContent = {
   heading: 'Agentic AI delivery',
   body:
@@ -79,8 +98,7 @@ export const cv = {
   current: {
     title: 'Software Team Lead',
     org: 'Waterstons',
-    short: '2022 to now',
-    since: 'since 2019',
+    startYear: '2022',
     workplace: 'Based in Newcastle upon Tyne, I work in Durham as a Software Team Lead at Waterstons, within the Digital Solutions software development team.',
     points: [
       'Supporting the growth and development of a highly skilled software team across projects, clients and industries.',
@@ -88,23 +106,29 @@ export const cv = {
     ],
   },
   waterstons: {
-    progression: 'Earlier roles: Senior Software Consultant and Senior Software Consultant Lead.',
-    description: 'My work at Waterstons spans hands-on development, technical leadership, architecture, client advice and mentoring.',
+    roles: [
+      { startYear: '2022', title: 'Senior Software Consultant Lead' },
+      { startYear: '2019', title: 'Senior Software Consultant' },
+    ],
+    description: 'My work at Waterstons spans hands-on development, technical leadership, architecture, client advice and mentoring. My project roles have included senior developer, lead developer, lead architect and technical lead. As a software lead, I manage technical risk, translate requirements into user stories and manage agile delivery teams.',
   },
   earlier: [
     {
       org: 'Oak Intranet',
-      title: 'Developer and Lead Software Developer',
-      description: 'Worked on the development of Oak’s intranet platform, helping organisations connect their people, share information and improve internal communication. Progressed from platform development to Lead Software Developer.',
+      roles: [
+        { startYear: '2018', title: 'Lead Software Developer' },
+        { startYear: '2014', title: 'Developer' },
+      ],
+      description: 'Worked on the development of Oak’s intranet platform, helping organisations connect their people, share information and improve internal communication. Progressed from platform development to Lead Software Developer. My work included frontend and backend development, translating UX designs into working features.',
     },
     {
       org: 'Creating Careers / vision2learn',
-      title: 'Developer',
-      description: 'Developed functionality for the vision2learn e-learning platform, supporting learners studying online and improving the efficiency of the operations team. Worked with ASP.NET to extend the platform’s capabilities.',
+      roles: [{ startYear: '2012', title: 'Developer' }],
+      description: 'Developed functionality for the vision2learn e-learning platform, supporting learners studying online and improving the efficiency of the operations team. Worked with ASP.NET to extend the platform’s capabilities. I began my software development career combining service desk support with developing new features. Investigating customer issues helped me build my debugging skills, while working directly with customers developed my communication skills.',
     },
     {
       org: 'Tata Steel',
-      title: 'Training Facilitator',
+      roles: [{ startYear: '2010', title: 'Training Manager' }],
       description: 'Responsible for on-site employee training at Tata Steel.',
     },
   ],

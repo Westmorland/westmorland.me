@@ -2,6 +2,12 @@ import { site, cv, ai, focus } from './content.ts';
 import { ProfileLinks } from './ProfileLinks.tsx';
 import { pad } from './format.ts';
 
+function RoleYears({ roles }: { roles: { startYear: string; title: string }[] }) {
+  return <ul className="b-roles">{roles.map(({ startYear, title }) => (
+    <li key={title}><time className="b-when" dateTime={startYear}>{startYear}</time><strong>{title}</strong></li>
+  ))}</ul>;
+}
+
 // Main content precedes the summary in DOM/mobile reading order.
 export function CV() {
   return (
@@ -29,20 +35,19 @@ export function CV() {
           <section aria-labelledby="b-exp">
             <h2 id="b-exp">Experience</h2>
             <article className="b-row">
-              <p className="b-when">{cv.current.short}</p>
               <div>
-                <h3>{cv.current.title}</h3><p className="b-org">{cv.current.org}<span> · {cv.current.since}</span></p>
+                <h3 className="b-org">{cv.current.org}</h3>
+                <RoleYears roles={[cv.current, ...cv.waterstons.roles]} />
                 <p className="b-workplace">{cv.current.workplace}</p>
-                <p>{cv.waterstons.progression}</p>
                 <p>{cv.waterstons.description}</p>
                 <ul>{cv.current.points.map((text) => <li key={text}>{text}</li>)}</ul>
               </div>
             </article>
             {cv.earlier.map((job) => (
               <article className="b-row b-earlier" key={job.org}>
-                <p className="b-when">Earlier</p>
                 <div>
-                  <h3>{job.title}</h3><p className="b-org">{job.org}</p>
+                  <h3 className="b-org">{job.org}</h3>
+                  <RoleYears roles={job.roles} />
                   <p>{job.description}</p>
                 </div>
               </article>

@@ -21,6 +21,6 @@
     "X-Frame-Options": "DENY",
     "Referrer-Policy": "no-referrer",
     "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
-    "Content-Security-Policy": "default-src 'none'; script-src 'sha256-3GaCBffZj6lPZ6AiRyLXwRsVMy1sWU51vjR54pP2DwQ='; style-src 'sha256-liD4u/yA7j5J5V1mC7JfdzbiAM0n3FpAIfSAOXUCHmc='; font-src data:; img-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+    "Content-Security-Policy": "default-src 'none'; script-src 'sha256-wxe5Yt4REvtJ+N5n9neTtSha7j3bGtACsQaL/8/C9tQ='; style-src 'sha256-8v3uioCryHkqTQjZ9vaY+HBHCaihNAVuoSaPUbUnN/8='; font-src data:; img-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
   }
 }

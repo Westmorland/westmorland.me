@@ -165,6 +165,18 @@ a:hover .ext { color: var(--signal); }
 .cc-focus li.is-ai .cc-focus-num { color: #4b5a14; }
 .cc-focus li:hover .cc-focus-num { color: var(--signal); }
 
+/* Selected experience: static cards, separate from the interactive Focus styling. */
+.cc-experience { margin-top: 48px; }
+.cc-experience h2 { margin: 0 0 12px; font: 400 11px/1.4 'JetBrains Mono', monospace; letter-spacing: 0.2em; text-transform: uppercase; color: var(--signal); }
+.cc-experience-intro { margin: 0 0 24px; max-width: 42rem; color: var(--body); }
+.cc-experience-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; }
+.cc-experience article { border-top: 1px solid var(--line); padding-top: 20px; }
+.cc-experience h3 { margin: 0 0 12px; font-size: clamp(1.35rem, 2vw, 1.8rem); line-height: 1.15; font-weight: 800; letter-spacing: -0.02em; }
+.cc-experience article p { margin: 0; color: var(--body); text-wrap: pretty; }
+@media (max-width: 860px) {
+  .cc-experience-cards { grid-template-columns: 1fr; }
+}
+
 /* ---------- Footer ---------- */
 .cc-foot { flex-wrap: wrap; }
 .cc-foot .foot-profiles { margin-left: auto; display: flex; gap: 20px; }
@@ -221,11 +233,13 @@ a:hover .ext { color: var(--signal); }
 .b-steps span { display: block; font: 400 11px/1.4 'JetBrains Mono', monospace; color: var(--dim); margin-bottom: 4px; }
 .b-steps strong { display: block; color: var(--bone); font-weight: 800; }
 
-.b-row { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 0 24px; padding: 4px 0 18px; }
+.b-row { padding: 4px 0 18px; }
 .b-when { margin: 4px 0 0 !important; font: 400 13px/1.5 'JetBrains Mono', monospace; color: var(--signal) !important; }
 .b-row h3 { margin: 0; font-size: clamp(1.35rem, 2.2vw, 1.8rem); font-weight: 800; letter-spacing: -0.02em; line-height: 1.15; }
 .b-org { margin: 2px 0 10px !important; color: var(--bone) !important; }
-.b-org span { color: var(--dim); }
+.b-row .b-roles { list-style: none; padding: 0; margin: 0 0 10px; }
+.b-roles li { display: grid; grid-template-columns: 4ch minmax(0, 1fr); gap: 16px; }
+.b-roles strong { color: var(--bone); }
 .b-row ul { margin: 0; padding-left: 1.1em; color: var(--body); }
 .b-row li { margin-bottom: 6px; max-width: 42rem; }
 .b-row li::marker { color: var(--signal); }
@@ -244,7 +258,6 @@ a:hover .ext { color: var(--signal); }
   .b-grid { grid-template-columns: 1fr; }
   .b-main, .b-side { grid-column: 1; grid-row: auto; }
   .b-side { border-top: 1px solid var(--line); }
-  .b-row { grid-template-columns: 1fr; }
   .b-ai { margin: 0 -18px; padding: 24px 18px !important; }
   .cc-foot { flex-direction: column; align-items: flex-start; gap: 4px; }
   .cc-foot .foot-profiles { margin-left: 0; }

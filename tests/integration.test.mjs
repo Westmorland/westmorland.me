@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { startServer } from './server.mjs';
 import { withSecurityHeaders } from './headers.mjs';
 import { PAGES } from '../src/routing.ts';
+import { selectedExperience, cv } from '../src/content.ts';
 
 let server;
 before(async () => { server = await startServer(); });
@@ -30,19 +31,35 @@ for (const page of ['cv', 'privacy', 'terms']) {
     assert.equal(response.headers.get('location'), `/${page}/`);
   });
 }
+test('HTTP Home delivers all three Selected experience cards after Focus', async () => {
+  const response = await fetch(server.url + '/');
+  assert.equal(response.status, 200);
+  const html = (await response.text()).match(/<main\b[^>]*>([\s\S]*?)<\/main>/)[1];
+  const section = html.match(/<section class="cc-experience"[\s\S]*?<\/section>/)[0];
+  assert.ok(html.indexOf('id="cc-focus-h"') < html.indexOf('id="cc-experience-h"'));
+  assert.ok(section.includes(selectedExperience.intro));
+  for (const card of selectedExperience.cards) assert.ok(section.includes(`<h3>${card.title}</h3><p>${card.body}</p>`));
+  for (const employer of [cv.current.org, ...cv.earlier.map(job => job.org)]) assert.ok(!html.includes(employer));
+});
+
 test('HTTP CV includes the expanded career entries without JavaScript', async () => {
   const response = await fetch(server.url + '/cv/');
   assert.equal(response.status, 200);
   const html = (await response.text()).split('<div id="root">')[1].split('<script>')[0];
   const experience = html.match(/<section aria-labelledby="b-exp">([\s\S]*?)<\/section>/)[1];
-  for (const text of ['Senior Software Consultant and Senior Software Consultant Lead', 'Developer and Lead Software Developer', 'Creating Careers / vision2learn', 'Training Facilitator', 'Responsible for on-site employee training at Tata Steel.', 'client advice and mentoring', 'improve internal communication', 'Worked with ASP.NET']) assert.ok(experience.includes(text), text);
+  for (const text of ['Senior Software Consultant Lead', 'Senior Software Consultant', 'Lead Software Developer', 'Creating Careers / vision2learn', 'Training Manager', 'Responsible for on-site employee training at Tata Steel.', 'client advice and mentoring', 'improve internal communication', 'Worked with ASP.NET']) assert.ok(experience.includes(text), text);
+  for (const description of [cv.waterstons.description, ...cv.earlier.map(job => job.description)]) assert.ok(experience.includes(description));
   const tata = [...experience.matchAll(/<article\b[^>]*>([\s\S]*?)<\/article>/g)].find(m => m[1].includes('Tata Steel'))?.[1];
   assert.ok(tata);
-  assert.match(tata, /<h3>Training Facilitator<\/h3>/);
+  assert.match(tata, /<strong>Training Manager<\/strong>/);
   assert.match(tata, /<p>Responsible for on-site employee training at Tata Steel\.<\/p>/);
-  assert.doesNotMatch(tata, /design|develop|software|courses?|manag|400|achievement/i);
+  assert.doesNotMatch(tata.match(/<p>(.*?)<\/p>/)[1], /design|develop|software|courses?|manag|400|achievement/i);
   assert.equal((experience.match(/<article /g) || []).length, 4);
-  assert.doesNotMatch(experience, /Training Manager|2010|2011|2012|2014|2018|disputed|indexed/);
+  assert.deepEqual([...experience.matchAll(/<time[^>]*>(\d{4})<\/time><strong>(.*?)<\/strong>/g)].map(m => [m[1], m[2]]), [
+    ['2022', 'Software Team Lead'], ['2022', 'Senior Software Consultant Lead'], ['2019', 'Senior Software Consultant'],
+    ['2018', 'Lead Software Developer'], ['2014', 'Developer'], ['2012', 'Developer'], ['2010', 'Training Manager'],
+  ]);
+  assert.doesNotMatch(experience.replace(/<[^>]*>/g, ' '), /Training Facilitator|Earlier|since|to now|disputed|indexed|January|February|March|April|May|June|July|August|September|October|November|December|\d{4}\s*[-–]\s*\d{4}/i);
 });
 test('unknown path returns Home with an honest 404 status', async () => {
   const response = await fetch(server.url + '/missing/');

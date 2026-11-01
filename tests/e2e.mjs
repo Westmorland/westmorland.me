@@ -8,6 +8,22 @@ import path from 'node:path';
 import { startServer } from './server.mjs';
 import { withSecurityHeaders } from './headers.mjs';
 
+const selectedTitles = ['Building for changing demand', 'Handling complex business rules', 'Architecture and technical leadership'];
+const selectedBodies = [
+  'As lead developer on an online platform, I worked with cloud services to accommodate peaks in demand and quieter periods. The challenge was to increase capacity when needed and reduce it when demand fell.',
+  'As a senior developer, I worked on an application with calculation rules that varied between projects. The work involved modelling those rules and supporting background processing.',
+  'I was lead architect and technical lead for a data and workflow management system. My current software lead work includes managing technical risk, translating requirements into user stories and managing an agile development team.',
+];
+const roleYears = [
+  ['2022', 'Software Team Lead'], ['2022', 'Senior Software Consultant Lead'], ['2019', 'Senior Software Consultant'],
+  ['2018', 'Lead Software Developer'], ['2014', 'Developer'], ['2012', 'Developer'], ['2010', 'Training Manager'],
+];
+const careerAdditions = [
+  'My project roles have included senior developer, lead developer, lead architect and technical lead. As a software lead, I manage technical risk, translate requirements into user stories and manage agile delivery teams.',
+  'My work included frontend and backend development, translating UX designs into working features.',
+  'I began my software development career combining service desk support with developing new features. Investigating customer issues helped me build my debugging skills, while working directly with customers developed my communication skills.',
+];
+
 const chrome = process.env.CHROME || process.argv[2];
 if (!chrome) throw new Error('Set CHROME to the installed browser executable');
 const origin = await startServer();
@@ -244,7 +260,10 @@ for (const route of ['/', '/cv/', '/privacy/', '/terms/']) {
   const markup = (await send('DOM.getDocument')).result.root;
   const main = (await send('DOM.querySelector', { nodeId: markup.nodeId, selector: 'main' })).result.nodeId;
   const html = (await send('DOM.getOuterHTML', { nodeId: main })).result.outerHTML;
-  if (route === '/cv/') check('no-JavaScript expanded career', ['Training Facilitator', 'Creating Careers / vision2learn', 'Senior Software Consultant Lead', 'Responsible for on-site employee training at Tata Steel.'].every(t => html.includes(t)) && !html.includes('Training Manager'));
+  if (route === '/') check('no-JavaScript Selected experience', ['Selected experience', ...selectedTitles, ...selectedBodies].every(t => html.includes(t)));
+  if (route === '/cv/') check('no-JavaScript agreed career additions', careerAdditions.every(t => html.includes(t)));
+  if (route === '/cv/') check('no-JavaScript exact start-year roles', JSON.stringify([...html.matchAll(/<time[^>]*>(\d{4})<\/time><strong>(.*?)<\/strong>/g)].map(m => [m[1], m[2]])) === JSON.stringify(roleYears));
+  if (route === '/cv/') check('no-JavaScript expanded career', ['Training Manager', 'Creating Careers / vision2learn', 'Senior Software Consultant Lead', 'Responsible for on-site employee training at Tata Steel.'].every(t => html.includes(t)) && !html.includes('Training Facilitator'));
   check(`no-JavaScript page ${route}`, html.includes(route === '/' ? 'Agentic AI software delivery' : route === '/cv/' ? 'Software lead and architect' : route === '/privacy/' ? 'Visiting this website' : 'The application'));
 }
 await fresh('/');
@@ -300,13 +319,42 @@ for (const w of [320, 375, 390, 768, 1440]) {
     const ov = await ev(`document.documentElement.scrollWidth - document.documentElement.clientWidth`);
     check(`${w}px no horizontal overflow ${p}`, ov <= 0, `overflow=${ov}px`);
     if (w <= 768) check(`${w}px practical navigation targets ${p}`, await ev(`Array.from(document.querySelectorAll('.cc-head nav a, .pl a, .home-cv, .cc-foot nav a')).every(a => a.getBoundingClientRect().height >= 44)`));
+    if (p === 'home') {
+      const experience = await ev(`(() => {
+        const section = document.querySelector('.cc-experience');
+        const cards = [...section.querySelectorAll('article')];
+        return {
+          heading: section.querySelector('h2').textContent,
+          intro: section.querySelector('.cc-experience-intro').textContent,
+          titles: cards.map(c => c.querySelector('h3').textContent),
+          bodies: cards.map(c => c.querySelector('p').textContent),
+          afterFocus: section.previousElementSibling?.className === 'cc-focus' && section.getBoundingClientRect().top >= section.previousElementSibling.getBoundingClientRect().bottom,
+          static: !section.querySelector('a, button, [tabindex], [role]'),
+          readable: [...section.querySelectorAll('h2, h3, p')].every(e => {
+            const b = e.getBoundingClientRect(), s = getComputedStyle(e);
+            const range = document.createRange(); range.selectNodeContents(e);
+            return b.width > 0 && b.height > 0 && b.left >= 0 && b.right <= innerWidth &&
+              e.scrollWidth <= e.clientWidth + 1 && e.scrollHeight <= e.clientHeight + 1 &&
+              s.visibility === 'visible' && s.opacity === '1' &&
+              [...range.getClientRects()].every(r => r.left >= b.left - 1 && r.right <= b.right + 1 && r.top >= b.top - 1 && r.bottom <= b.bottom + 1);
+          }),
+          stacked: cards.every((c, i) => i === 0 || c.getBoundingClientRect().top >= cards[i - 1].getBoundingClientRect().bottom),
+          columns: cards.every(c => c.getBoundingClientRect().top === cards[0].getBoundingClientRect().top),
+          wrapped: cards.every(c => { const p = c.querySelector('p'); return p.getBoundingClientRect().height > parseFloat(getComputedStyle(p).lineHeight); }),
+          text: document.querySelector('main').innerText,
+        };
+      })()`);
+      check(`${w}px exact Selected experience copy and order`, experience.heading === 'Selected experience' && experience.intro === 'My experience spans hands-on development, architecture and technical leadership.' && JSON.stringify(experience.titles) === JSON.stringify(selectedTitles) && JSON.stringify(experience.bodies) === JSON.stringify(selectedBodies) && experience.afterFocus);
+      check(`${w}px Selected experience readable, wrapping and static`, experience.readable && experience.wrapped && experience.static && (w <= 860 ? experience.stacked : experience.columns), JSON.stringify({readable: experience.readable, wrapped: experience.wrapped, stacked: experience.stacked, columns: experience.columns}));
+      check(`${w}px Home presentation excludes employer names`, !/Waterstons|Oak|Creating Careers|vision2learn|Tata Steel/.test(experience.text));
+    }
     if (p === 'cv') {
       const career = await ev(`(() => {
         const rows = [...document.querySelectorAll('[aria-labelledby="b-exp"] article')];
-        return { text: rows.map(r => r.innerText).join('\\n'), titles: rows.map(r => r.querySelector('h3').textContent), readable: rows.every((r, i) => {
+        return { text: rows.map(r => r.innerText).join('\\n'), employers: rows.map(r => r.querySelector('h3').textContent), roles: rows.flatMap(r => [...r.querySelectorAll('.b-roles li')].map(li => [li.querySelector('time').textContent, li.querySelector('strong').textContent])), readable: rows.every((r, i) => {
           const box = r.getBoundingClientRect();
           return box.width > 0 && (i === 0 || box.top >= rows[i - 1].getBoundingClientRect().bottom) &&
-            [...r.querySelectorAll('h3, p, li')].every(e => {
+            [...r.querySelectorAll('h3, p, li, time, strong')].every(e => {
               const b = e.getBoundingClientRect(), s = getComputedStyle(e);
               return b.width > 0 && b.height > 0 && b.left >= 0 && b.right <= innerWidth && e.scrollWidth <= e.clientWidth + 1 && e.scrollHeight <= e.clientHeight + 1 && s.visibility === 'visible' && s.opacity === '1';
             });
@@ -314,11 +362,12 @@ for (const w of [320, 375, 390, 768, 1440]) {
       })()`);
       const tata = await ev(`(() => {
         const row = [...document.querySelectorAll('[aria-labelledby="b-exp"] article')].find(r => r.querySelector('.b-org')?.textContent === 'Tata Steel');
-        return row && {title: row.querySelector('h3').textContent, description: row.querySelector('div > p:last-child').textContent, text: row.innerText};
+        return row && {title: row.querySelector('.b-roles strong').textContent, description: row.querySelector('div > p:last-child').textContent, text: row.innerText};
       })()`);
-      check(`${w}px Tata Steel exact training-only copy`, tata?.title === 'Training Facilitator' && tata.description === 'Responsible for on-site employee training at Tata Steel.' && !/design|develop|software|courses?|manag|400|achievement/i.test(tata.text), JSON.stringify(tata));
-      check(`${w}px all expanded career entries readable`, career.readable && JSON.stringify(career.titles) === JSON.stringify(['Software Team Lead', 'Developer and Lead Software Developer', 'Developer', 'Training Facilitator']));
-      check(`${w}px career details and date exclusions`, ['Senior Software Consultant and Senior Software Consultant Lead', 'Creating Careers / vision2learn', 'Responsible for on-site employee training at Tata Steel.', 'client advice and mentoring', 'improve internal communication', 'Worked with ASP.NET', '2022 to now', 'since 2019'].every(t => career.text.includes(t)) && !/Training Manager|2010|2011|2012|2014|2018|disputed|indexed/.test(career.text));
+      check(`${w}px Tata Steel exact training-only copy`, tata?.title === 'Training Manager' && tata.description === 'Responsible for on-site employee training at Tata Steel.' && !/design|develop|software|courses?|manag|400|achievement/i.test(tata.description), JSON.stringify(tata));
+      check(`${w}px all expanded career entries readable`, career.readable && JSON.stringify(career.employers) === JSON.stringify(['Waterstons', 'Oak Intranet', 'Creating Careers / vision2learn', 'Tata Steel']));
+      check(`${w}px agreed career additions present`, careerAdditions.every(t => career.text.includes(t)));
+      check(`${w}px exact roles and start years only`, JSON.stringify(career.roles) === JSON.stringify(roleYears) && !/Training Facilitator|Earlier|since|to now|disputed|indexed|January|February|March|April|May|June|July|August|September|October|November|December|\d{4}\s*[-–]\s*\d{4}/i.test(career.text));
       check(`${w}px CV reading/layout order`, await ev(`(() => { const main = document.querySelector('.b-main'), side = document.querySelector('.b-side'); return !!(main.compareDocumentPosition(side) & Node.DOCUMENT_POSITION_FOLLOWING) && (${w} <= 860 ? side.getBoundingClientRect().top >= main.getBoundingClientRect().bottom : side.getBoundingClientRect().left < main.getBoundingClientRect().left); })()`));
     }
   }
